@@ -10,9 +10,9 @@ public Plugin myinfo =
 {
 	name = "Faceit Level",
 	description = "Show players faceit rank",
-	author = "Phoenix (˙·٠●Феникс●٠·˙)",
-	version = "1.0.3",
-	url = "zizt.ru hlmod.ru"
+	author="Akash Purandare",
+	version="1.0.0",
+	url = "https://fegaming.xyz"
 };
 
 enum struct Player
@@ -30,14 +30,13 @@ char g_sApiKey[64];
 
 public void OnPluginStart()
 {
-	sm_faceit_level_api_key = CreateConVar("sm_faceit_level_api_key", "Ваш API ключ", "Как получить API ключ - https://hlmod.ru/threads/faceit-level.52529/#post-464526");
+	sm_faceit_level_api_key = CreateConVar("sm_faceit_level_api_key", "Your API key", "How to get an API key - https://hlmod.ru/threads/faceit-level.52529/#post-464526");
 	sm_faceit_level_api_key.AddChangeHook(ApiKeyChanged);
 	
 	AutoExecConfig(true, "faceit_level");
-	
 	char sBuf[64];
-	
-	//Нужно получить значение, иначе если будет загружен посреди игры то g_sApiKey будет пуст
+
+	// We need to get the value, otherwise if it is loaded in the middle of the game, then g_sApiKey will be empty
 	sm_faceit_level_api_key.GetString(sBuf, sizeof sBuf);
 	ApiKeyChanged(null, NULL_STRING, sBuf);
 	
@@ -71,7 +70,7 @@ void ApiKeyChanged(ConVar hConvar, const char[] oldValue, const char[] newValue)
 	FormatEx(g_sApiKey, sizeof g_sApiKey, "Bearer %s", newValue);
 }
 
-//Чтобы уменьшить количество запросов к API
+// To reduce the number of API requests
 public void OnClientConnected(int iClient)
 {
 	int iUserID = GetClientUserId(iClient);
@@ -112,14 +111,14 @@ public void OnClientAuthorized(int iClient, const char[] sAuth)
 
 void HTTPPlayerDetailsComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, any iUserID)
 {
-	//Пока что игнорируем ошибки при загрузке
+	// Ignore loading errors for now
 	if(eStatusCode == k_EHTTPStatusCode200OK || eStatusCode == k_EHTTPStatusCode404NotFound)
 	{
 		int iClient = GetClientOfUserId(iUserID);
 		
 		if(iClient)
 		{
-			//Если игрок играл на faceit
+			// If the player played on faceit
 			if(eStatusCode == k_EHTTPStatusCode200OK)
 			{
 				SteamWorks_GetHTTPResponseBodyCallback(hRequest, HTTPPlayerDetailsCompleteData, iUserID);
@@ -150,11 +149,11 @@ void HTTPPlayerDetailsCompleteData(const char[] sData, any iUserID)
 
 void Hook_OnThinkPost(int iEnt)
 {
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if(g_Players[i].iSkillLevel)
-        {
-            SetEntData(iEnt, m_nPersonaDataPublicLevel + i * 4, g_Players[i].iSkillLevel + 5000);
-        }
-    }
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if(g_Players[i].iSkillLevel)
+		{
+			SetEntData(iEnt, m_nPersonaDataPublicLevel + i * 4, g_Players[i].iSkillLevel + 5000);
+		}
+	}
 }
