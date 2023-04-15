@@ -1,0 +1,90 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Build plugin
+
+env:
+  SMVERSION: 1.11
+  SMPACKAGE_URL_PREFIX: "http://sourcemod.net/latest.php?os=linux&version="
+  STEAMWORKS_URL: "https://github.com/KyleSanderson/SteamWorks/releases/download/1.2.3c/package-lin.tgz"
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches:
+  #     - main
+  #     - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Get latest sourcemod
+        run: |
+          curl -L "$SMPACKAGE_URL_PREFIX${SMVERSION}" --output sourcemod.tar.gz
+          tar xfz sourcemod.tar.gz
+          mkdir -p addons/sourcemod/scripting/include
+          cd addons/sourcemod/scripting
+          chmod +x spcomp
+          chmod +x spcomp64
+          chmod +x compile.sh
+
+      - name: Checkout SteamWorks
+        run: |
+          curl -L "$STEAMWORKS_URL" --output steamworks.tar.gz
+          tar xfz steamworks.tar.gz
+          cp package/addons/sourcemod/* addons/sourcemod/ -r
+      
+      - name: Checkout sourcemod-plugins
+        uses: actions/checkout@v3
+        with:
+          repository: DoctorMcKay/sourcemod-plugins
+          fetch-depth: 1
+          path: sm_plugins
+
+      - name: Copy sourcemod-plugins includes
+        run: |
+          cp sm_plugins/scripting/include/* addons/sourcemod/scripting/include/ -r
+
+      - name: Checkout sourcemod-plugins
+        uses: actions/checkout@v3
+        with:
+          repository: clugg/sm-json
+          fetch-depth: 1
+          path: sm_json
+
+      - name: Copy sm-json includes
+        run: |
+          cp sm_json/addons/sourcemod/scripting/include/* addons/sourcemod/scripting/include/ -r
+
+      - name: Plugin Checkout
+        uses: actions/checkout@v3
+        with:
+          path: plugin
+
+      # Runs a set of commands using the runners shell
+      - name: Compile plugin
+        run: |
+          echo "PLUGINS_LIST=$(ls plugin/*.sp | tr '\n' ' ')" >> $GITHUB_ENV
+          cp plugin/*.sp addons/sourcemod/scripting/ -r
+          cd addons/sourcemod/scripting
+          ./compile.sh ${{ env.PLUGINS_LIST }}
+      
+      - name: Upload Plugin
+        uses: actions/upload-artifact@v3
+        with:
+          name: compiled_plugin
+          path: addons/sourcemod/scripting/compiled/*.smx
